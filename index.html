@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SoloShot Coach - Day 1</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; line-height: 1.5; }
+  h1 { font-size: 26px; }
+  video, canvas, img { width: 100%; max-width: 640px; border: 2px solid #333; border-radius: 12px; background: #111; }
+  button { font-size: 17px; padding: 10px 16px; margin: 8px 8px 8px 0; border-radius: 10px; cursor: pointer; }
+  select { font-size: 17px; padding: 8px; }
+  #status { font-weight: bold; margin: 12px 0; }
+  #guidance { background: #fff7d6; border: 1px solid #e6c200; padding: 12px; border-radius: 10px; white-space: pre-line; }
+  .small { color: #555; }
+</style>
+</head>
+<body>
+<h1>SoloDirectorAI - Day 1</h1>
+<p><strong>Goal today:</strong> Camera works, photo capture works, check screen works. SAM is NOT connected yet - that is Day 2, after we verify the exact Meta API format from the official docs.</p>
+
+<label for="subject"><strong>What are you photographing?</strong></label>
+<select id="subject">
+  <option value="me">Me</option>
+  <option value="cake">Birthday cake</option>
+  <option value="both">Me + cake</option>
+</select>
+
+<p>
+  <button id="startBtn">1. Start Camera</button>
+  <button id="captureBtn" disabled>2. Capture Photo</button>
+  <button id="checkBtn" disabled>3. Check Photo</button>
+</p>
+
+<p id="status">Status: Camera not started yet.</p>
+
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<h2>Captured photo</h2>
+<img id="photo" alt="Your captured photo will appear here." />
+
+<h2>Guidance</h2>
+<div id="guidance">Press "Check Photo" after you capture a photo. Day 1 uses a manual checklist. Day 2 will replace this with SAM 3.1.</div>
+
+<p class="small">Safety note: Do NOT paste your Meta API key into this file. Day 2 will add a key box that saves only in your browser, never in the file.</p>
+
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const photo = document.getElementById('photo');
+  const statusEl = document.getElementById('status');
+  const guidanceEl = document.getElementById('guidance');
+  const startBtn = document.getElementById('startBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const subjectEl = document.getElementById('subject');
+
+  let stream = null;
+  let hasPhoto = false;
+
+  startBtn.addEventListener('click', async () => {
+    try {
+      statusEl.textContent = 'Status: Asking for camera permission...';
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      video.srcObject = stream;
+      captureBtn.disabled = false;
+      statusEl.textContent = 'Status: Camera is ON. Look at the camera and press Capture Photo.';
+    } catch (error) {
+      statusEl.textContent = 'Status: Camera failed. Error: ' + error.message + ' - Check camera permission and use Live Server (localhost), not a plain file open, if this fails.';
+    }
+  });
+
+  captureBtn.addEventListener('click', () => {
+    if (!video.videoWidth) {
+      statusEl.textContent = 'Status: Video is not ready yet. Wait 2 seconds and try again.';
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    photo.src = canvas.toDataURL('image/jpeg', 0.9);
+    hasPhoto = true;
+    checkBtn.disabled = false;
+    statusEl.textContent = 'Status: Photo captured. Now press Check Photo.';
+    guidanceEl.textContent = 'Photo captured. Press Check Photo for the Day 1 manual checklist.';
+  });
+
+  checkBtn.addEventListener('click', () => {
+    if (!hasPhoto) {
+      statusEl.textContent = 'Status: Capture a photo first.';
+      return;
+    }
+    const subject = subjectEl.value;
+    // DAY 2 TODO: Replace this manual checklist with a real SAM 3.1 call.
+    // Official docs to verify first: https://dev.meta.ai/docs/ and https://dev.meta.ai/models/sam-3-1/
+    // Do NOT guess the SAM API endpoint. Verify it from those docs / Discord before wiring it here.
+    let text = 'DAY 1 MANUAL CHECK (SAM not connected yet)\n';
+    text += 'Subject: ' + subject + '\n\n';
+    text += 'Look at your captured photo and answer honestly:\n';
+    text += '1. Is the face fully visible? If not: move left / right, or put the camera properly.\n';
+    text += '2. Is the face turned away? If yes: look at the camera for one photo.\n';
+    text += '3. Is the cake fully visible (if you chose cake)? If not: bring it closer or zoom out.\n';
+    text += '4. Expression a little: smile a bit.\n';
+    text += '5. Check mirror / wipe face if needed.\n\n';
+    text += 'If any answer is NO, fix it and capture again. That is the Day 1 loop.';
+    guidanceEl.textContent = text;
+    statusEl.textContent = 'Status: Day 1 check done. This will become a real SAM check on Day 2.';
+  });
+</script>
+</body>
+</html>
